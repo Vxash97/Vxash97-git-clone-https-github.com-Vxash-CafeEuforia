@@ -99,7 +99,7 @@ if tabs == "🛒 New Order":
 
         # Finalize Order Section
         with st.expander("Finalize Order", expanded=True):
-            payment_type = st.selectbox("Payment Type", ["Cash", "Card", "Other"])
+            payment_type = st.selectbox("Payment Type", ["Cash", "Online Payment", "Other"])
             
             # Button to finalize the order
             if st.button("Finalize Order"):
