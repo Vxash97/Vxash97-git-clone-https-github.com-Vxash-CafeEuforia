@@ -201,12 +201,18 @@ elif tabs == "📈 Accounting":
                 )
                 st.success(f"Added expense: {expense_item} - RM {expense_amount:.2f}")
 
-    # Section 3: Summary of Income, Expenses, and Net Profit
-    if not st.session_state.orders.empty and not st.session_state.expenses.empty:
+    # Display Expenses
+    if not st.session_state.expenses.empty:
+        st.subheader("💳 Recorded Expenses")
+        st.dataframe(st.session_state.expenses, use_container_width=True)
+
+    # Section 3: Summary Metrics
+    if not st.session_state.orders.empty:
         total_income = st.session_state.orders["Total"].sum()
-        total_expenses = st.session_state.expenses["Amount"].sum()
+        total_expenses = st.session_state.expenses["Amount"].sum() if not st.session_state.expenses.empty else 0
         net_profit = total_income - total_expenses
-        st.subheader("📊 Summary")
-        st.write(f"Total Income: RM {total_income:.2f}")
-        st.write(f"Total Expenses: RM {total_expenses:.2f}")
-        st.write(f"Net Profit: RM {net_profit:.2f}")
+
+        st.subheader("💰 Summary")
+        st.metric("Total Debit (Income)", f"RM {total_income:.2f}")
+        st.metric("Total Credit (Expenses)", f"RM {total_expenses:.2f}")
+        st.metric("Net Profit", f"RM {net_profit:.2f}")
