@@ -21,10 +21,23 @@ def generate_order_id():
 
 # Predefined prices for items
 prices = {
-    "Espresso": 10.0,
     "Latte": 8.0,
-    "Cappuccino": 10.0,
-    "Americano": 10.0,
+    "Hazelnut Latte": 10.0,
+    "Vanilla Latte": 10.0,
+    "Caramel Latte": 10.0,
+    "Spanish Latte": 10.0,
+    "Mocha Latte": 11.0,
+    "Caramel Machiatto": 11.0,
+    "Creme' Nutty": 12.0,
+    "Strawberry Cloudy": 5.0,
+    "Beri Angkasa (Blueberry)": 5.0,
+    "Mentari Manis (Banana)": 5.0,
+    "Sinar Senja (Manga)": 5.0,
+    "Hijau Daun (Grenntea)": 5.0,
+    "Dewi Melon (HoneyDew)": 5.0,
+    "French Fries": 7.0,
+    "Cheezy Wedges": 8.0,
+    "Popia Carbonara": 8.0
 }
 
 # Sidebar navigation
