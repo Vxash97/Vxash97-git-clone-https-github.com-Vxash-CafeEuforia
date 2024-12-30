@@ -130,7 +130,7 @@ if tabs == "🛒 New Order":
                 if st.session_state.current_order.empty:
                     st.error("No items in the current order!")
                 else:
-                    today_date = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+                    today_date = datetime.now().strftime("%Y-%m-%d")
                     order_number = generate_order_id()  # Generate the custom order number
                     total_order_price = st.session_state.current_order["Total"].sum()
 
