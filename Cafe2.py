@@ -3,12 +3,6 @@ import pandas as pd
 from io import BytesIO
 import io
 from datetime import datetime
-from fpdf import FPDF
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
 import os
 
 # File paths for storing the data
