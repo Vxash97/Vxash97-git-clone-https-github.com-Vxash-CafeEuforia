@@ -1,12 +1,21 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+import io
 from datetime import datetime
+from fpdf import FPDF
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 import os
 
 # File paths for storing the data
 orders_file = "orders.csv"
 expenses_file = "expenses.csv"
+# Add a new CSV file for inventory
+inventory_file = "inventory.csv"
 
 # Set wide layout for mobile/tablet compatibility
 st.set_page_config(layout="wide", page_title="Coffee Shop Tracker")
@@ -42,6 +51,27 @@ if "order_id_counter" not in st.session_state:
 def generate_order_id():
     return f"EU{st.session_state.order_id_counter:03d}"
 
+# Function to load inventory data
+def load_inventory():
+    if os.path.exists(inventory_file):
+        st.session_state.inventory = pd.read_csv(inventory_file)
+    else:
+        # Initialize with default values if the file doesn't exist
+        default_inventory = {
+            "Item": ["Cup", "Cup Cover", "Straw", "Plastic", "Box"], 
+            "Quantity": [0, 0, 0, 0, 0]
+        }
+        st.session_state.inventory = pd.DataFrame(default_inventory)
+        save_inventory()  # Save to file if not exists
+
+# Function to save inventory data
+def save_inventory():
+    st.session_state.inventory.to_csv(inventory_file, index=False)
+
+# Initialize inventory state
+if "inventory" not in st.session_state:
+    load_inventory()
+
 # Predefined prices for items
 prices = {
     "Latte": 8.0,
@@ -65,7 +95,7 @@ prices = {
 
 # Sidebar navigation
 st.sidebar.title("📋 Coffee Shop Tracker")
-tabs = st.sidebar.radio("Select Option", ["🛒 New Order", "📊 Manage Orders", "📈 Accounting", "📋 Data & Download"])
+tabs = st.sidebar.radio("Select Option", ["🛒 New Order", "📊 Manage Orders", "📈 Accounting", "📋 Data & Download", "📦 Inventory"])
 
 # Tab 1: New Order
 if tabs == "🛒 New Order":
@@ -92,13 +122,13 @@ if tabs == "🛒 New Order":
                 st.session_state.current_order = pd.concat([st.session_state.current_order, pd.DataFrame([new_item])], ignore_index=True)
                 st.success(f"Added {quantity} x {order_type} to current order!")
 
-    # Display current order if there are any items added
-    if not st.session_state.current_order.empty:
-        st.subheader("📝 Current Order")
-        st.dataframe(st.session_state.current_order, use_container_width=True)
+            # Display the current order
+        if not st.session_state.current_order.empty:
+            st.subheader("Current Order")
+            st.table(st.session_state.current_order)
 
         # Finalize Order Section
-        with st.expander("Finalize Order", expanded=True):
+        if not st.session_state.current_order.empty:
             payment_type = st.selectbox("Payment Type", ["Cash", "Online Payment", "Other"])
             
             # Button to finalize the order
@@ -118,6 +148,61 @@ if tabs == "🛒 New Order":
                         order_data["Payment Type"] = payment_type
                         st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([order_data])], ignore_index=True)
 
+                    # Deduct inventory based on order quantity
+                    for _, row in st.session_state.current_order.iterrows():
+                        order_type = row["Order Type"]
+                        # Check if the order type contains the word "Latte" or other predefined types
+                        if "Latte" in row["Order Type"]:  # Assuming all coffee types require these items
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup Cover", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Straw", "Quantity"] -= row["Quantity"]
+
+                        elif "Caramel Machiatto" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup Cover", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Straw", "Quantity"] -= row["Quantity"]
+                        
+                        elif "Creme' Nutty" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Cup Cover", "Quantity"] -= row["Quantity"]
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Straw", "Quantity"] -= row["Quantity"]
+
+                        elif "Strawberry Cloudy" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "Beri Angkasa (Blueberry)" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "Mentari Manis (Banana)" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "Sinar Senja (Manga)" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "Hijau Daun (Grenntea)" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "Dewi Melon (HoneyDew)" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Plastic", "Quantity"] -= row["Quantity"]
+
+                        elif "French Fries" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Box", "Quantity"] -= row["Quantity"]
+
+                        elif "Cheezy Wedges" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Box", "Quantity"] -= row["Quantity"]
+
+                        elif "Popia Carbonara" in order_type:
+                            st.session_state.inventory.loc[st.session_state.inventory["Item"] == "Box", "Quantity"] -= row["Quantity"]
+
+                    # Save inventory to session or database
+                    save_inventory()
+
+                    # Low inventory check
+                    low_inventory = st.session_state.inventory[st.session_state.inventory["Quantity"] < 10]
+                    if not low_inventory.empty:
+                        st.warning("Low inventory detected for the following items:")
+                        st.table(low_inventory)
+
                     st.success(f"Order finalized! Order Number: {order_number} | Total: RM {total_order_price:.2f}")
                     
                     # Reset current order and increment the order ID counter
@@ -126,6 +211,12 @@ if tabs == "🛒 New Order":
 
                     # Save the updated orders to file
                     save_data()
+
+    # # Display current order if there are any items added
+    # if not st.session_state.current_order.empty:
+    #     st.subheader("📝 Current Order")
+    #     st.dataframe(st.session_state.current_order, use_container_width=True)
+
 
     # Admin Options - Reset Order ID Counter
     with st.expander("Admin Options", expanded=False):
@@ -187,7 +278,9 @@ elif tabs == "📈 Accounting":
 
     # Section 1: View Daily Totals
     if not st.session_state.orders.empty:
-        daily_totals = st.session_state.orders.groupby("Date")["Total"].sum().reset_index()
+        # Group by "Date" and aggregate "Total" and "Order Number"
+        daily_totals = (st.session_state.orders.groupby("Date").agg(Total=("Total", "sum"),Order_IDs=("Order Number", lambda x: ", ".join(map(str, x.unique())))).reset_index())
+        # Display the dataframe
         st.subheader("📅 Daily Totals")
         st.dataframe(daily_totals, use_container_width=True)
 
@@ -289,3 +382,27 @@ elif tabs == "📋 Data & Download":
             file_name="coffee_shop_data.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
+# New Tab: Inventory Management
+elif tabs == "📦 Inventory":
+    st.title("📦 Inventory Management")
+
+    # Display current inventory
+    st.subheader("Current Inventory")
+    st.dataframe(st.session_state.inventory, use_container_width=True)
+
+    # Update inventory
+    st.subheader("Update Inventory")
+    with st.form("inventory_form"):
+        inventory_updates = {}
+        for _, row in st.session_state.inventory.iterrows():
+            item = row["Item"]
+            current_qty = row["Quantity"]
+            new_qty = st.number_input(f"{item} Quantity", min_value=0, value=int(current_qty), step=1, key=item)
+            inventory_updates[item] = new_qty
+
+        if st.form_submit_button("Update Inventory"):
+            for item, qty in inventory_updates.items():
+                st.session_state.inventory.loc[st.session_state.inventory["Item"] == item, "Quantity"] = qty
+            save_inventory()
+            st.success("Inventory updated successfully!")
